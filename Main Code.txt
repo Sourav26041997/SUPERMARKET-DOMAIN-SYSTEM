@@ -1,0 +1,392 @@
+#Database connection details
+import pymysql
+
+
+# MySQL database connection
+conn_obj=pymysql.connect(
+    host="localhost",
+    user="root",
+    password="sourav@1997",
+    database="final_project_dec_2024")
+cur_obj=conn_obj.cursor()
+
+
+
+# Login for manager
+def manager_cashier_credentials(user_id):
+    query = f"select * from credentials WHERE user_name=\'{user_id}\'"
+
+
+    try:
+        cur_obj.execute(query)
+        result = cur_obj.fetchone() # to fetch first value from the Mysql Table
+        conn_obj.commit()
+    except pymysql.connect.Error as e:
+        print("Error retrieving data from MySQL:", e)
+        conn_obj.rollback()
+
+    return result
+
+
+
+
+
+
+
+
+# Manager stock update and red value set
+def update_inventory_manager():
+    while True:
+        print("\n--- Inventory Update Menu ---")
+        print("1. Update Stock (p_stock_in_hand)")
+        print("2. Update Red Value (red_value)")
+        print("3. Exit")
+        menu_option = input("Select option (1, 2, or 3): ")
+
+        if menu_option == '1':  # Update stock
+            while True:
+                p_id = input("Enter Product ID to update stock -> ")
+
+                # Check if product ID exists
+                cur_obj.execute("SELECT * FROM inventory WHERE p_id = %s", (p_id,))
+                result = cur_obj.fetchone()
+                if not result:
+                    print("Error: Product ID not available. Returning to main menu.")
+                    break  # Go back to main menu
+
+                new_stock = input("Enter new stock quantity -> ")
+
+                query = """
+                    UPDATE inventory
+                    SET p_stock_in_hand = %s
+                    WHERE p_id = %s
+                """
+                data = (new_stock, p_id)
+
+                try:
+                    cur_obj.execute(query, data)
+                    conn_obj.commit()
+                    print("Stock updated successfully.")
+                except pymysql.MySQLError as e:
+                    print("Error updating stock:", e)
+                    conn_obj.rollback()
+
+                cont = input("Would you like to update another stock?\nEnter 's' to stop or 'c' to continue -> ")
+                if cont.lower() == 's':
+                    break
+                elif cont.lower() == 'c':
+                    continue
+                else:
+                    print("You have enter wrong choice")
+                    break
+
+
+        elif menu_option == '2':  # Update red value
+            while True:
+                p_id = input("Enter Product ID to update red value -> ")
+
+                # Check if product ID exists
+                cur_obj.execute("SELECT * FROM inventory WHERE p_id = %s", (p_id,))
+                result = cur_obj.fetchone()
+                if not result:
+                    print("Error: Product ID not available. Returning to main menu.")
+                    break  # Go back to main menu
+
+                new_red_value = input("Enter new red (warning) value -> ")
+
+                query = """
+                    UPDATE inventory
+                    SET red_value = %s
+                    WHERE p_id = %s
+                """
+                data = (new_red_value, p_id)
+
+                try:
+                    cur_obj.execute(query, data)
+                    conn_obj.commit()
+                    print("Red value updated successfully.")
+                except pymysql.MySQLError as e:
+                    print("Error updating red value:", e)
+                    conn_obj.rollback()
+
+                cont = input("Would you like to update another red value?\nEnter 's' to stop or 'c' to continue -> ")
+                if cont.lower() == 's':
+                    break
+                elif cont.lower() == 'c':
+                    continue
+                else:
+                    print("You have enter wrong choice")
+                    break
+
+        elif menu_option == '3':
+            print("Exiting inventory update menu.")
+            break
+        else:
+            print("Invalid selection. Please choose 1, 2, or 3.")
+
+
+
+
+
+
+
+
+# New customer record entry
+def data_entry_sql(name,address,ph_no):
+
+    # Build the query with user-provided name using LIKE operator
+    sql = "INSERT INTO cust_basic_details (c_name, c_address, c_phone_number) VALUES (%s, %s, %s)"
+    data = (name,address,ph_no)
+
+    try:
+        cur_obj.execute(sql, data)
+        print("NEW CUSTOMER ENTRY SUCCESSFUL.")
+        conn_obj.commit()
+    except pymysql.connect.Error as e:
+        print("Error inserting data to MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+
+
+
+
+#Existed ph no retrieve from table
+def data_retrieve(ph_no):
+
+    query = f"select * from cust_basic_details WHERE c_phone_number={ph_no}"
+
+    try:
+        cur_obj.execute(query)
+        result = cur_obj.fetchone()
+        conn_obj.commit()
+    except pymysql.connect.Error as e:
+        print("Error retrieving data from MySQL:", e)
+        conn_obj.rollback()
+
+    return result
+
+
+
+
+
+
+
+
+# data retrieve from inventory table to get product id which is gaven by customer
+# and also retrieve the price of that particular product id
+def inventory_search(p_id):
+
+    query = f"select * from inventory WHERE p_id={p_id}"
+
+    try:
+        cur_obj.execute(query)
+        result = cur_obj.fetchone()
+        conn_obj.commit()
+    except pymysql.connect.Error as e:
+        print("Error retrieving data from MySQL:", e)
+        conn_obj.rollback()
+
+    return result
+
+
+
+
+
+
+
+# Inventory updated after stock get deducted
+def update_inventory_stock(p_id,p_quantity):
+    query = "SELECT p_stock_in_hand, red_value FROM inventory WHERE p_id = %s"
+    data = (p_id)
+
+    try:
+        cur_obj.execute(query, data)
+        result = cur_obj.fetchone()
+        conn_obj.commit()
+    except pymysql.connect.Error as e:
+        print("Error retrieving stock from MySQL:", e)
+        conn_obj.rollback()
+        return False
+
+    current_stock, red_value = result
+
+
+
+    if current_stock < p_quantity:
+        print("Insufficient stock.")
+        return False
+
+
+    # Calculate new stock
+    new_stock = current_stock - p_quantity
+
+    # Check if new stock hits red_value threshold or got lesser than red_value
+    if new_stock == red_value:
+        print(
+            f"\nNOTICE:\n"
+            f"WARNING! After this deduction, stock for product ID -> {p_id} "
+            f"has reached the red_value threshold -> ({red_value}).\n"
+            f"Please inform the Manager.\n"
+        )
+
+    if new_stock<red_value:
+        print(
+            f"\nNOTICE:\n"
+            f"WARNING! Stock for product ID -> {p_id} "
+            f"got lesser than the red_value threshold -> ({red_value}).\n"
+            f"Please inform the Manager.\n"
+        )
+
+
+    # Proceed with update
+    update_query = "UPDATE inventory SET p_stock_in_hand = %s WHERE p_id = %s"
+    update_data = (new_stock, p_id)
+
+    try:
+        cur_obj.execute(update_query, update_data)
+        conn_obj.commit()
+        print(f" Inventory updated. Remaining stock for product ID {p_id} is {new_stock}")
+        return True
+    except pymysql.connect.Error as e:
+        print("Error updating inventory in MySQL:", e)
+        conn_obj.rollback()
+        return False
+
+
+
+
+
+
+
+
+# Billing mechanism for customer
+# result_from_db store the customer details, which is retrieve from
+# cust_basic_details table and after that billing mechanism started
+# for that particular customer
+def billing_mechanism(result_from_db):
+    # loop for adding of multiple p_id amount
+    total_bill_amount = 0
+    # infinite while loop for taking multiple product id and quantity
+    while True:
+
+        # jodi customer already database ey thakey taholey product id aar
+        # quantity customer thekey niyea nebo
+        from Qrscanner import qr_code_scanner
+        raw_scan = qr_code_scanner()
+        p_id = raw_scan.split('-')[0]  # Extract only the numeric product ID before '-'
+
+        #p_id = input("Please enter product id-> ")
+        p_quantity = int(input("Please enter product quantity-> "))
+        stock_result = update_inventory_stock(p_id, p_quantity)
+        if not stock_result:
+            print("Skipping billing for this product due to inventory issue.")
+            continue
+        result_from_inventory = inventory_search(p_id)
+        bill_amount = float(result_from_inventory[2] * p_quantity)
+        # loop for adding of multiple p_id amount
+        total_bill_amount = total_bill_amount + bill_amount
+
+        res = input("Do you want to stop the billing ? enter s otherwise enter c to continue-> ")
+        if res == 's' or res == 'S':
+            break
+        elif res == 'c' or res == 'C':
+            continue
+        else:
+            print("Wrong choice")
+    # to see the total bill amount
+    print(total_bill_amount)
+    # result_from_db is a variable which is used to hold the query result of getting from
+    # cust_basic_details table, and now if we want to take some particular columns from
+    # cust_basic_details table,we have to use column index with variable name because
+    # here the query is return and stored
+    audit_table_entry(result_from_db[0], result_from_db[1], total_bill_amount)
+
+
+
+
+
+
+
+
+# Table where all bills are kept with date stamp
+#Insert bill details into audit table for final billing
+def audit_table_entry(c_id, c_name, total_bill_amount):
+
+    # Build the query with user-provided name using LIKE operator
+    sql = "INSERT INTO audit (c_id, c_name, total_bill_amount) VALUES (%s, %s, %s)"
+    data = (c_id, c_name, total_bill_amount)
+
+    try:
+        cur_obj.execute(sql, data)
+        print("NEW BILL ENTRY SUCCESSFUL.")
+        conn_obj.commit()
+    except pymysql.connect.Error as e:
+        print("Error inserting data to MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+
+
+
+# Main Program started from here
+# main logic
+# --- Start: Role Selection ---
+def main():
+    user_option = input("Please select 1 for Manager login\n"
+                        "Please select 2 for Cashier billing\n"
+                        "-> ")
+
+    if user_option == '1':  # Manager Login
+        attempts = 0
+        while attempts < 3:
+            user_id = input("Please enter your user ID -> ")
+            user_password = input("Please enter your password -> ")
+
+            result_from_db = manager_cashier_credentials(user_id)
+
+            if result_from_db:
+                if user_password == result_from_db[-1]:  # -1 index for last column at the table
+                    print("Manager login successful!")
+                    # Manager-specific logic here
+                    update_inventory_manager()
+                    break
+                else:
+                    attempts += 1
+                    print(f"Login failed: Incorrect password. Attempt {attempts}/3")
+            else:
+                attempts += 1
+                print(f"Login failed: User ID not found. Attempt {attempts}/3")
+
+            if attempts == 3:
+                print("Too many failed attempts. Exiting.")
+
+    elif user_option == '2':  # Cashier Workflow
+        ph_no = input("Please enter customer phone number -> ")
+        result_from_db = data_retrieve(ph_no)
+        if result_from_db:
+            billing_mechanism(result_from_db)
+        else:
+            name = input("Please enter customer name -> ")
+            address = input("Please enter customer address -> ")
+            data_entry_sql(name, address, ph_no,)
+            result_from_db = data_retrieve(ph_no)
+            billing_mechanism(result_from_db)
+
+
+    else:
+        print("Invalid selection. Please choose 1 or 2.")
+
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    finally:
+        cur_obj.close()
+        conn_obj.close()
+        print("✅ Database connection closed.")

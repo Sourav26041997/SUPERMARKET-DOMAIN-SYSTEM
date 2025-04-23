@@ -1,0 +1,218 @@
+import pymysql
+
+# MySQL database connection
+conn_obj = pymysql.connect(
+    host="localhost",
+    user="root",
+    password="sourav@1997",
+    database="final_project_dec_2024"
+)
+cur_obj = conn_obj.cursor()
+
+
+
+
+def data_entry_sql(user_name, user_password):
+    sql = "INSERT INTO credentials (user_name, user_password) VALUES (%s, %s)"
+    data = (user_name, user_password)
+    try:
+        cur_obj.execute(sql, data)
+        conn_obj.commit()
+        print("ENTRY SUCCESSFULLY DONE.")
+    except pymysql.MySQLError as e:
+        print("Error inserting data to MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+
+def manager_data_retrieve():
+    query = "SELECT * FROM credentials"
+    try:
+        cur_obj.execute(query)
+        results = cur_obj.fetchall()
+        for row in results:
+            print(row)
+        conn_obj.commit()
+    except pymysql.MySQLError as e:
+        print("Error retrieving data from MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+
+def customer_data_retrieve():
+    query = "SELECT * FROM cust_basic_details"
+    try:
+        cur_obj.execute(query)
+        results = cur_obj.fetchall()
+        for row in results:
+            print(row)
+        conn_obj.commit()
+    except pymysql.MySQLError as e:
+        print("Error retrieving data from MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+
+def audit_data_retrieve():
+    query = "SELECT * FROM audit"
+    try:
+        cur_obj.execute(query)
+        results = cur_obj.fetchall()
+        for row in results:
+            print(row)
+        conn_obj.commit()
+    except pymysql.MySQLError as e:
+        print("Error retrieving data from MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+
+def inventory_data_retrieve():
+    query = "SELECT * FROM inventory"
+    try:
+        cur_obj.execute(query)
+        results = cur_obj.fetchall()
+        for row in results:
+            print(row)
+        conn_obj.commit()
+    except pymysql.MySQLError as e:
+        print("Error retrieving data from MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+
+def manager_data_delete(user_id):
+    query = "DELETE FROM credentials WHERE user_name = %s"
+    try:
+        cur_obj.execute(query, (user_id,))
+        conn_obj.commit()
+        print("RECORD SUCCESSFULLY DELETED.")
+    except pymysql.MySQLError as e:
+        print("Error deleting data from MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+def customer_data_delete(ph_no):
+    query = "DELETE FROM cust_basic_details WHERE c_phone_number  = %s"
+    try:
+        cur_obj.execute(query, (ph_no,))
+        conn_obj.commit()
+        print("RECORD SUCCESSFULLY DELETED.")
+    except pymysql.MySQLError as e:
+        print("Error deleting data from MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+def delete_single_audit_data(bill_id):
+    query = "DELETE FROM audit WHERE bill_id  = %s"
+    try:
+        cur_obj.execute(query, (bill_id,))
+        conn_obj.commit()
+        print("RECORD SUCCESSFULLY DELETED.")
+    except pymysql.MySQLError as e:
+        print("Error deleting data from MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+def delete_all_audit_data():
+    query = "truncate table audit"
+    try:
+        cur_obj.execute(query)
+        conn_obj.commit()
+        print("ALL RECORDS SUCCESSFULLY DELETED.")
+    except pymysql.MySQLError as e:
+        print("Error deleting data from MySQL:", e)
+        conn_obj.rollback()
+
+
+
+
+def manager_credentials():
+
+    user_name = input("Please enter your user id-> ").strip()
+    user_password = input("Please enter your password-> ").strip()
+    data_entry_sql(user_name, user_password)
+
+
+
+
+def manager_credentials_details_delete():
+    
+    user_id = input("Please enter your user id-> ").strip()
+    manager_data_delete(user_id)
+
+
+
+
+def customer_basic_detail_delete():
+    
+    ph_no = input("Please enter customer phone number-> ").strip()
+    customer_data_delete(ph_no)
+
+
+
+
+def delete_single_audit_record():
+
+    bill_id=input("Please enter bill id-> ").strip()
+    delete_single_audit_data(bill_id)
+
+
+
+
+# Main logic
+while True:
+    select_option = input("\nADMIN MENU:\n"
+                        "Press - 1 to insert a new credential record of a manager\n"
+                        "Press - 2 to insert View all credential records of manager table\n"
+                        "Press - 3 to delete a credential record of a manager\n"
+                        "Press - 4 to view all customer details\n"
+                        "Press - 5 to delete a customer detail\n"
+                        "Press - 6 to view all audit records\n"  
+                        "Press - 7 to delete one audit record\n"
+                        "Press - 8 to delete all audit records\n"
+                        "Press - 9 to show all inventory details\n"
+                        "Press - 10 to Exit\n-> ")
+
+    if select_option == '1':
+        manager_credentials()
+    elif select_option == '2':
+        manager_data_retrieve()
+    elif select_option == '3':
+         manager_credentials_details_delete()
+    elif select_option == '4':
+        customer_data_retrieve()
+    elif select_option == '5':
+        customer_basic_detail_delete()
+    elif select_option == '6':
+        audit_data_retrieve()
+    elif select_option == '7':
+        delete_single_audit_record()
+    elif select_option == '8':
+        delete_all_audit_data()
+    elif select_option == '9':
+        inventory_data_retrieve()
+    elif select_option == '10':
+        print("Exiting the program.")
+        break
+    else:
+        print("Wrong option selected. Please try again.")
+
+
+conn_obj.close()
